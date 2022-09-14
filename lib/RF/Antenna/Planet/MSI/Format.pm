@@ -1,11 +1,11 @@
 package RF::Antenna::Planet::MSI::Format;
 use strict;
 use warnings;
+use Tie::IxHash;
 use Path::Class;
 use parent qw{Package::New};
 
 our $VERSION = '0.01';
-our @header_order = ();
 
 =head1 NAME
 
@@ -24,7 +24,7 @@ RF::Antenna::Planet::MSI::Format - RF Antenna Pattern File Reader and Writer in 
 
 =head1 DESCRIPTION
 
-This package reads and writes antenna radiation patterns in planet antenna format.
+This package reads and writes antenna radiation patterns in Planet MSI antenna format.
 
 Planet is a RF propagation simulation tool initially developed by MSI. Planet was a 2G radio planning tool which has set a standard in the early days of computer aided radio network design. The antenna pattern file and the format which is currently known as ".msi" format or .msi-file has become a standard.
 
@@ -76,7 +76,6 @@ sub read {
       die(sprintf('Error: VERTICAL records with %s records returned %s records', $value, scalar(@data))) unless scalar(@data) == $value;
       $self->vertical(\@data);
     } else {
-      push @header_order, $key unless grep {$_ eq $key} @header_order;
       $self->header($key => $value);
     }
     last unless @lines;
@@ -88,7 +87,8 @@ sub read {
 
 Writes the objects data to an antenna pattern file and returns a Path::Class file object of the written file.
 
-  my $file = $antenna->write($filename);
+  my $file     = $antenna->write($filename); #isa Path::Class::file
+  my $tempfile = $antenna->write;            #isa Path::Class::file in temp directory
 
 =cut
 
@@ -113,27 +113,27 @@ sub write {
     print $fh "$key $value\n";
   }
 
-  my %header   = %{$self->header}; #copy
-  foreach my $key (@header_order) {
-    _print_fh_key_value($fh, $key, delete $header{$key});
-  }
-  foreach my $key (keys %header) {
-    _print_fh_key_value($fh, $key, $header{$key});
+  my $header = $self->header; #isa Tie::IxHash ordered hash
+  foreach my $key (keys %$header) {
+    my $value = $header->{$key};
+    _print_fh_key_value($fh, $key, $value) if length $value;
   }
 
-  sub _print_fh_method_array {
-    my $fh     = shift;
-    my $method = shift;
-    my $array  = shift;
+  sub _print_fh_key_array {
+    my $fh    = shift;
+    my $key   = shift;
+    my $array = shift;
     if (@$array) {
-      _print_fh_key_value($fh, uc($method), scalar(@$array));
+      _print_fh_key_value($fh, $key, scalar(@$array));
       foreach my $row (@$array) {
-        _print_fh_key_value($fh, @$row);
+        my $key   = $row->[0];
+        my $value = $row->[1];
+        _print_fh_key_value($fh, $key, $value);
       }
     }
   }
 
-  _print_fh_method_array($fh, $_, $self->$_) foreach qw{horizontal vertical};
+  _print_fh_key_array($fh, uc($_), $self->$_) foreach qw{horizontal vertical};
 
   close $fh;
   return $file;
@@ -143,6 +143,8 @@ sub write {
 
 =head2 header
 
+Returns a header
+
   my $header_href = $antenna->header; #isa HASH
   $antenna->header(NAME => $myname, MAKE => $mymake);
 
@@ -150,8 +152,17 @@ sub write {
 
 sub header {
   my $self = shift;
-  my %args = @_;
-  $self->{'header'}->{uc($_)} = $args{$_} foreach keys %args;
+  die("Error: header method requires key value pairs") if @_ % 2;
+  unless (defined $self->{'header'}) {
+    my %data = ();
+    tie(%data, 'Tie::IxHash');
+    $self->{'header'} = \%data;
+  }
+  while (@_) {
+    my $key   = shift;
+    my $value = shift;
+    $self->{'header'}->{uc($key)} = $value;
+  }
   return $self->{'header'};
 }
 
@@ -166,7 +177,7 @@ Name of the antenna
 
 sub name {
   my $self = shift;
-  $self->header->{'NAME'} = shift if @_;
+  $self->header(NAME => shift) if @_;
   return $self->header->{'NAME'};
 }
 
@@ -181,7 +192,7 @@ Name of the manufacturer
 
 sub make {
   my $self = shift;
-  $self->header->{'MAKE'} = shift if @_;
+  $self->header(MAKE => shift) if @_;
   return $self->header->{'MAKE'};
 }
 
@@ -196,7 +207,7 @@ Frequency string as displayed in file
 
 sub frequency {
   my $self = shift;
-  $self->header->{'FREQUENCY'} = shift if @_;
+  $self->header(FREQUENCY => shift) if @_;
   return $self->header->{'FREQUENCY'};
 }
 
@@ -208,7 +219,7 @@ Antenna gain string as displayed in file (dBd is the default unit of measure)
 
 sub gain {
   my $self = shift;
-  $self->header->{'GAIN'} = shift if @_;
+  $self->header(GAIN => shift) if @_;
   return $self->header->{'GAIN'};
 }
 

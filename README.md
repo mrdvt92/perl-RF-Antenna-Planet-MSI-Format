@@ -15,7 +15,7 @@ RF::Antenna::Planet::MSI::Format - RF Antenna Pattern File Reader and Writer in 
 
 # DESCRIPTION
 
-This package reads and writes antenna radiation patterns in planet antenna format.
+This package reads and writes antenna radiation patterns in Planet MSI antenna format.
 
 Planet is a RF propagation simulation tool initially developed by MSI. Planet was a 2G radio planning tool which has set a standard in the early days of computer aided radio network design. The antenna pattern file and the format which is currently known as ".msi" format or .msi-file has become a standard.
 
@@ -47,11 +47,14 @@ Reads an antenna pattern file and parses the data into the current object data s
 
 Writes the objects data to an antenna pattern file and returns a Path::Class file object of the written file.
 
-    my $file = $antenna->write($filename);
+    my $file     = $antenna->write($filename); #isa Path::Class::file
+    my $tempfile = $antenna->write;            #isa Path::Class::file in temp directory
 
 # METHODS
 
 ## header
+
+Returns a header
 
     my $header_href = $antenna->header; #isa HASH
     $antenna->header(NAME => $myname, MAKE => $mymake);

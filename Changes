@@ -3,3 +3,4 @@ Revision history for Perl extension RF::Antenna::Planet::MSI::Format.
 0.01 2022-09-14
   - original version; created by h2xs 1.23 with options
   - new, read and write method are operational
+  - replaced header order capability with Tie::IxHash
