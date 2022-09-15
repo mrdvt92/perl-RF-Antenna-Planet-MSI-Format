@@ -1,9 +1,9 @@
 package RF::Antenna::Planet::MSI::Format;
 use strict;
 use warnings;
-use Tie::IxHash;
-use Path::Class;
-use parent qw{Package::New};
+use Scalar::Util qw();
+use Tie::IxHash qw{};
+use Path::Class qw{};
 
 our $VERSION = '0.01';
 
@@ -13,13 +13,17 @@ RF::Antenna::Planet::MSI::Format - RF Antenna Pattern File Reader and Writer in 
 
 =head1 SYNOPSIS
 
-  use RF::Antenna::Planet::MSI::Format;
-  my $antenna = RF::Antenna::Planet::MSI::Format->new(%parameters);
-  $antenna->name("Set Name");
+Read from MSI file
 
+  use RF::Antenna::Planet::MSI::Format;
   my $antenna = RF::Antenna::Planet::MSI::Format->new;
   $antenna->read($filename);
 
+Create a blank object, load data from other sources, then write antenna pattern file.
+
+  my $antenna = RF::Antenna::Planet::MSI::Format->new;
+  $antenna->name("My Name");
+  $antenna->make("My Make");
   my $file    = $antenna->write($filename);
 
 =head1 DESCRIPTION
@@ -32,23 +36,68 @@ Planet is a RF propagation simulation tool initially developed by MSI. Planet wa
 
 =head2 new
 
-Creates a new blank object for creating files or loading data from other formats
+Creates a new blank object for creating files or loading data from other sources
 
-  my $antenna = RF::Antenna::Planet::MSI::Format->new->read($filename);
+  my $antenna = RF::Antenna::Planet::MSI::Format->new;
+
+Creates a new object and loads data from other sources
 
   my $antenna = RF::Antenna::Planet::MSI::Format->new(
-                                                      name          => "my antenna name",
-                                                      make          => "my manufacturer name",
+                                                      name          => "My Antenna Name",
+                                                      make          => "My Manufacturer Name",
                                                       frequency     => "2437" || "2437 MHz" || "2.437 GHz",
                                                       gain          => "10.0" || "10.0 dBd" || "12.14 dBi",
-                                                      comment       => "My comment"
+                                                      comment       => "My Comment",
                                                       horizontal    => [[0.00, 0.96], [1.00, 0.04], ..., [180.00, 31.10], ..., [359.00, 0.04]],
                                                       vertical      => [[0.00, 1.08], [1.00, 0.18], ..., [180.00, 31.23], ..., [359.00, 0.18]],
                                                      );
 
+=cut
+
+sub new {
+  my $this  = shift;
+  die("Error: new constructor requires key/value pairs") if @_ % 2;
+  my $class = ref($this) ? ref($this) : $this;
+  my $self  = {};
+  bless $self, $class;
+
+  my @later = ();
+  while (@_) { #preserve order
+    my $key   = shift;
+    my $value = shift;
+    if ($key eq 'header') {
+      if (ref($value) eq 'HASH') {
+        my @order = qw{NAME MAKE FREQUENCY H_WIDTH V_WIDTH FRONT_TO_BACK GAIN TILT POLARIZATION COMMENT};
+        my %uc    = map {uc($_) => $value->{$_}} keys %$value;
+        foreach my $key (@order) {
+          next unless exists $uc{$key};
+          $self->header($key => delete($uc{$key}));
+        }
+        $self->header(%uc); #appends unknown keys to header
+      } elsif (ref($value) eq 'ARRAY') {
+        $self->header(@$value); #preserves order
+      } else {
+        die("Error: header value expected to be either array reference or hash reference");
+      }
+    } elsif ($key eq 'horizontal') {
+      die("Error: horizontal value expected to be array reference") unless ref($value) eq 'ARRAY';
+      $self->horizontal($value);
+    } elsif ($key eq 'vertical') {
+      die("Error: vertical value expected to be array reference") unless ref($value) eq 'ARRAY';
+      $self->vertical($value);
+    } else {
+      die("Error: header key/value pairs must be strings") if ref($value);
+      push @later, $key, $value; #store for later so that we process header before header keys
+    }
+  }
+  $self->header(@later) if @later;
+
+  return $self;
+}
+
 =head2 read
 
-Reads an antenna pattern file and parses the data into the current object data structure.
+Reads an antenna pattern file and parses the data into the object data structure.
 
   $antenna->read($filename);
 
@@ -133,26 +182,40 @@ sub write {
     }
   }
 
-  _print_fh_key_array($fh, uc($_), $self->$_) foreach qw{horizontal vertical};
+  foreach my $method (qw{horizontal vertical}) {
+    my $array = $self->$method;
+    next unless $array;
+    my $key   = uc($_);
+    _print_fh_key_array($fh, $key, $array);
+  }
 
   close $fh;
   return $file;
 }
 
-=head1 METHODS
+=head1 DATA STRUCTURE METHODS
 
 =head2 header
 
-Returns a header
+Set header values and returns the header hash reference which is tied L<Tie::IxHash> to preserve header sort order.
 
-  my $header_href = $antenna->header; #isa HASH
+Set a key/value pair
+
+  $antenna->header(Comment => "My comment");          #will upper case all keys
+
+Set multiple keys/values with one call
+
   $antenna->header(NAME => $myname, MAKE => $mymake);
+
+Read arbitrary values
+
+  my $value = $antenna->header->{uc($key)};
 
 =cut
 
 sub header {
   my $self = shift;
-  die("Error: header method requires key value pairs") if @_ % 2;
+  die('Error: header method requires key/value pairs') if @_ % 2;
   unless (defined $self->{'header'}) {
     my %data = ();
     tie(%data, 'Tie::IxHash');
@@ -166,12 +229,40 @@ sub header {
   return $self->{'header'};
 }
 
+=head2 horizontal, vertical
+
+Horizontal or vertical data structure for the angle and relative loss values from the specified gain in the header.
+
+Each methods sets and returns an array reference of array references [[$angle1, $value1], $angle2, $value2], ...]
+
+Please note that the format uses equal spacing of data points by angle.  Most files that I have seen use 360 one degree measurements from 0 (i.e. boresight) to 359 degrees with values in dB down from the maximum lobe even if that lobe is not the boresight.
+
+=cut
+
+sub horizontal {
+  my $self = shift;
+  $self->{'horizontal'} = shift if @_;
+  return $self->{'horizontal'};
+}
+
+sub vertical {
+  my $self = shift;
+  $self->{'vertical'} = shift if @_;
+  return $self->{'vertical'};
+}
+
+=head1 HELPER METHODS
+
+Helper methods are wrappers around the header data structure to aid in usability. 
+
 =head2 name
 
-Name of the antenna
+Sets and returns the name of the antenna in the header structure
 
   my $name = $antenna->name;
   $antenna->name("My Antenna Name");
+
+Assumed: Less than about 40 ASCII characters
 
 =cut
 
@@ -183,10 +274,12 @@ sub name {
 
 =head2 make
 
-Name of the manufacturer
+Sets and returns the name of the manufacturer in the header structure
 
-  my $name = $antenna->name;
-  $antenna->name("My Antenna Manufacturer");
+  my $make = $antenna->make;
+  $antenna->make("My Antenna Manufacturer");
+
+Assumed: Less than about 40 ASCII characters
 
 =cut
 
@@ -198,10 +291,12 @@ sub make {
 
 =head2 frequency
 
-Frequency string as displayed in file
+Sets and returns the frequency string as displayed in header structure
 
-  my $name = $antenna->name;
-  $antenna->name("My Antenna Name");
+  my $frequency = $antenna->frequency;
+  $antenna->frequency("2450");     #correct format in MHz
+  $antenna->frequency("2450 MHz"); #acceptable format
+  $antenna->frequency("2.45 GHz"); #common format but technically not to spec
 
 =cut
 
@@ -209,6 +304,34 @@ sub frequency {
   my $self = shift;
   $self->header(FREQUENCY => shift) if @_;
   return $self->header->{'FREQUENCY'};
+}
+
+=head2 frequency_mhz, frequency_ghz
+
+Attempts to read and parse the string header value and return the frequency as a number in the requested unit of measure.
+
+=cut
+
+sub frequency_mhz {
+  my $self = shift;
+  my $string = $self->frequency;
+  if (Scalar::Util::looks_like_number($string)) {
+    return $string + 0; #convert from string to number
+  } elsif ($string =~ m/MHz\s*\Z/i) {
+    return $string + 0; #pulls the number out before the string for you ... try it perl -e 'print "2314.23 MHz" + 0'
+  } elsif ($string =~ m/GHz\s*\Z/i) {
+    return ($string + 0) * 1000;
+  } elsif ($string =~ m/kHz\s*\Z/i) {
+    return eval{($string + 0) / 1000}; #eval will return undef on divide by zero
+  } else {
+    return undef;
+  }
+}
+
+sub frequency_ghz {
+  my $self = shift;
+  my $mhz  = $self->frequency_mhz;
+  return $mhz ? $mhz/1000 : undef;
 }
 
 =head2 gain
@@ -223,32 +346,30 @@ sub gain {
   return $self->header->{'GAIN'};
 }
 
-=head2 horizontal
+=head2 gain_dbd, gain_dbi
 
-An array reference of array references [[$angle1, $value1], $angle2, $value2], ...]
-
-Horizontal gain data points per horizontal angle relative to maximum gain being zero. Any value below zero is assumed to be negative. Minus sign is not used with these values
+Attempts to read and parse the string header value and return the gain as a number in the requested unit of measure.
 
 =cut
 
-sub horizontal {
+sub gain_dbd {
   my $self = shift;
-  $self->{'horizontal'} = shift if @_;
-  return $self->{'horizontal'};
+  my $string = $self->gain;
+  if (Scalar::Util::looks_like_number($string)) {
+    return $string + 0; #dBd is the default UOM
+  } elsif ($string =~ m/dBd\s*\Z/i) {
+    return $string + 0;
+  } elsif ($string =~ m/dBi\s*\Z/i) {
+    return ($string + 0) - 2.14;
+  } else {
+    return undef;
+  }
 }
 
-=head2 vertical
-
-An array reference of array references [[$angle1, $value1], $angle2, $value2], ...]
-
-Horizontal gain data points per horizontal angle relative to maximum gain being zero. Any value below zero is assumed to be negative. Minus sign is not used with these values
-
-=cut
-
-sub vertical {
+sub gain_dbi {
   my $self = shift;
-  $self->{'vertical'} = shift if @_;
-  return $self->{'vertical'};
+  my $dbd  = $self->gain_dbd;
+  return defined($dbd) ? $dbd + 2.14 : undef;
 }
 
 =head1 SEE ALSO
