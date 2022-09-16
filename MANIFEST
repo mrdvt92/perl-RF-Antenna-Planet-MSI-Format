@@ -13,3 +13,4 @@ t/006_read_scalar.t
 t/anonymous.msi
 lib/RF/Antenna/Planet/MSI/Format.pm
 scripts/perl-RF-Antenna-Planet-MSI-Format-printer.pl
+perl-RF-Antenna-Planet-MSI-Format.spec
