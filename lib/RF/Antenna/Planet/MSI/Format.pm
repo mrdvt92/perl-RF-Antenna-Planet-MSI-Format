@@ -114,13 +114,13 @@ sub read {
     $line =~ s/\s*\Z//; #rtrim
     next unless $line;
     my ($key, $value) = split /\s+/, $line, 2;
-    printf "Key: $key, Value: $value\n";
+    #printf "Key: $key, Value: $value\n";
     if ($key =~ m/\AHORIZONTAL\Z/i) {
-      my @data = map {[split /\s+/, $_, 2]} splice @lines, 0, $value;
+      my @data = map {s/\s+\Z//; s/\A\s+//; [split /\s+/, $_, 2]} splice @lines, 0, $value;
       die(sprintf('Error: HORIZONTAL records with %s records returned %s records', $value, scalar(@data))) unless scalar(@data) == $value;
       $self->horizontal(\@data);
     } elsif ($key =~ m/\AVERTICAL\Z/i) {
-      my @data = map {[split /\s+/, $_, 2]} splice @lines, 0, $value;
+      my @data = map {s/\s+\Z//; s/\A\s+//; [split /\s+/, $_, 2]} splice @lines, 0, $value;
       die unless @data == $value;
       die(sprintf('Error: VERTICAL records with %s records returned %s records', $value, scalar(@data))) unless scalar(@data) == $value;
       $self->vertical(\@data);
