@@ -1,4 +1,6 @@
+/files/*.zip
 /files/*.msi
+/files/*/
 /META.yml
 /META.json
 /MYMETA.*
