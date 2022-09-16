@@ -45,17 +45,17 @@ Creates a new object and loads data from other sources
 
 ## read
 
-Reads an antenna pattern file and parses the data into the object data structure. Returns the object so that the called can be chained.
+Reads an antenna pattern file and parses the data into the object data structure. Returns the object so that the call can be chained.
 
     $antenna->read($filename);
 
 ## write
 
-Writes the objects data to an antenna pattern file and returns a Path::Class file object of the written file.
+Writes the object's data to an antenna pattern file and returns a Path::Class file object of the written file.
 
     my $file     = $antenna->write($filename); #isa Path::Class::file
     my $tempfile = $antenna->write;            #isa Path::Class::file in temp directory
-    $antenna->write(\my $blob);
+    $antenna->write(\my $scalar_ref);          #returns undef with data writen to the variable
 
 # DATA STRUCTURE METHODS
 
@@ -129,6 +129,14 @@ Antenna gain string as displayed in file (dBd is the default unit of measure)
 ## gain\_dbd, gain\_dbi
 
 Attempts to read and parse the string header value and return the gain as a number in the requested unit of measure.
+
+## electrical\_tilt
+
+Antenna electrical\_tilt string as displayed in file (dBd is the default unit of measure)
+
+## comment
+
+Antenna comment string as displayed in file (dBd is the default unit of measure)
 
 # SEE ALSO
 
