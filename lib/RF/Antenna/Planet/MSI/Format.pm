@@ -383,7 +383,10 @@ sub gain_dbi {
 
 =head2 electrical_tilt
 
-Antenna electrical_tilt string as displayed in file (dBd is the default unit of measure)
+Antenna electrical_tilt string as displayed in file.
+
+  my $electrical_tilt = $antenna->electrical_tilt;
+  $antenna->electrical_tilt("MECHINICAL");
 
 =cut
 
@@ -395,7 +398,10 @@ sub electrical_tilt {
 
 =head2 comment
 
-Antenna comment string as displayed in file (dBd is the default unit of measure)
+Antenna comment string as displayed in file.
+
+  my $comment = $antenna->comment;
+  $antenna->comment("My Comment");
 
 =cut
 

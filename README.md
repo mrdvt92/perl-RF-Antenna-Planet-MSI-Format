@@ -132,11 +132,17 @@ Attempts to read and parse the string header value and return the gain as a numb
 
 ## electrical\_tilt
 
-Antenna electrical\_tilt string as displayed in file (dBd is the default unit of measure)
+Antenna electrical\_tilt string as displayed in file.
+
+    my $electrical_tilt = $antenna->electrical_tilt;
+    $antenna->electrical_tilt("MECHINICAL");
 
 ## comment
 
-Antenna comment string as displayed in file (dBd is the default unit of measure)
+Antenna comment string as displayed in file.
+
+    my $comment = $antenna->comment;
+    $antenna->comment("My Comment");
 
 # SEE ALSO
 
