@@ -97,7 +97,7 @@ sub new {
 
 =head2 read
 
-Reads an antenna pattern file and parses the data into the object data structure.
+Reads an antenna pattern file and parses the data into the object data structure. Returns the object so that the called can be chained.
 
   $antenna->read($filename);
 
@@ -197,7 +197,7 @@ sub write {
 
 =head2 header
 
-Set header values and returns the header hash reference which is tied L<Tie::IxHash> to preserve header sort order.
+Set header values and returns the header data structure which is a hash reference tied to L<Tie::IxHash> to preserve header sort order.
 
 Set a key/value pair
 
@@ -210,6 +210,10 @@ Set multiple keys/values with one call
 Read arbitrary values
 
   my $value = $antenna->header->{uc($key)};
+
+Returns ordered list of header keys
+
+  my @keys = keys %{$antenna->header};
 
 =cut
 
