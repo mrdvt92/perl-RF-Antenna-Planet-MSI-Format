@@ -97,7 +97,7 @@ sub new {
 
 =head2 read
 
-Reads an antenna pattern file and parses the data into the object data structure. Returns the object so that the called can be chained.
+Reads an antenna pattern file and parses the data into the object data structure. Returns the object so that the call can be chained.
 
   $antenna->read($filename);
 
@@ -106,14 +106,15 @@ Reads an antenna pattern file and parses the data into the object data structure
 sub read {
   my $self  = shift;
   my $file  = shift;
-  my $blob  = Path::Class::file($file)->slurp;
+  my $blob  = ref($file) eq 'SCALAR' ? ${$file} : Path::Class::file($file)->slurp;
   my @lines = split(/[\n\r]+/, $blob);
   while (1) {
     my $line = shift @lines;
     $line =~ s/\A\s*//; #ltrim
     $line =~ s/\s*\Z//; #rtrim
     next unless $line;
-    my ($key, $value) = split /\s+/, $line, 2;
+    my ($key, $value) = split /\s+/, $line, 2; #split with limit returns undef value if empty string
+    $value = '' unless defined $value; 
     #printf "Key: $key, Value: $value\n";
     if ($key =~ m/\AHORIZONTAL\Z/i) {
       my @data = map {s/\s+\Z//; s/\A\s+//; [split /\s+/, $_, 2]} splice @lines, 0, $value;
@@ -134,11 +135,11 @@ sub read {
 
 =head2 write
 
-Writes the objects data to an antenna pattern file and returns a Path::Class file object of the written file.
+Writes the object's data to an antenna pattern file and returns a Path::Class file object of the written file.
 
   my $file     = $antenna->write($filename); #isa Path::Class::file
   my $tempfile = $antenna->write;            #isa Path::Class::file in temp directory
-  $antenna->write(\my $blob);
+  $antenna->write(\my $scalar_ref);          #returns undef with data writen to the variable
 
 =cut
 
@@ -169,7 +170,7 @@ sub write {
   my $header = $self->header; #isa Tie::IxHash ordered hash
   foreach my $key (keys %$header) {
     my $value = $header->{$key};
-    _print_fh_key_value($fh, $key, $value) if length $value;
+    _print_fh_key_value($fh, $key, $value) if defined $value;
   }
 
   sub _print_fh_key_array {
@@ -325,12 +326,12 @@ sub frequency_mhz {
   my $string = $self->frequency;
   if (Scalar::Util::looks_like_number($string)) {
     return $string + 0; #convert from string to number
-  } elsif ($string =~ m/MHz\s*\Z/i) {
-    return $string + 0; #pulls the number out before the string for you ... try it perl -e 'print "2314.23 MHz" + 0'
-  } elsif ($string =~ m/GHz\s*\Z/i) {
-    return ($string + 0) * 1000;
-  } elsif ($string =~ m/kHz\s*\Z/i) {
-    return eval{($string + 0) / 1000}; #eval will return undef on divide by zero
+  } elsif ($string =~ m/([0-9\.]+)\s*MHz/i) {
+    return $1 + 0; #pulls the number out before the string for you ... try it perl -e 'print "2314.23 MHz" + 0'
+  } elsif ($string =~ m/([0-9\.]+)\s*GHz/i) {
+    return ($1 + 0) * 1000;
+  } elsif ($string =~ m/([0-9\.]+)\s*kHz/i) {
+    return eval{($1 + 0) / 1000}; #eval will return undef on divide by zero
   } else {
     return undef;
   }
@@ -365,10 +366,10 @@ sub gain_dbd {
   my $string = $self->gain;
   if (Scalar::Util::looks_like_number($string)) {
     return $string + 0; #dBd is the default UOM
-  } elsif ($string =~ m/dBd\s*\Z/i) {
-    return $string + 0;
-  } elsif ($string =~ m/dBi\s*\Z/i) {
-    return ($string + 0) - 2.14;
+  } elsif ($string =~ m/([0-9\.]+)\s*dBd/i) {
+    return $1 + 0;
+  } elsif ($string =~ m/([0-9\.]+)\s*dBi/i) {
+    return ($1 + 0) - 2.14;
   } else {
     return undef;
   }
@@ -378,6 +379,30 @@ sub gain_dbi {
   my $self = shift;
   my $dbd  = $self->gain_dbd;
   return defined($dbd) ? $dbd + 2.14 : undef;
+}
+
+=head2 electrical_tilt
+
+Antenna electrical_tilt string as displayed in file (dBd is the default unit of measure)
+
+=cut
+
+sub electrical_tilt {
+  my $self = shift;
+  $self->header(ELECTRICAL_TILT => shift) if @_;
+  return $self->header->{'ELECTRICAL_TILT'};
+}
+
+=head2 comment
+
+Antenna comment string as displayed in file (dBd is the default unit of measure)
+
+=cut
+
+sub comment {
+  my $self = shift;
+  $self->header(COMMENT => shift) if @_;
+  return $self->header->{'COMMENT'};
 }
 
 =head1 SEE ALSO
