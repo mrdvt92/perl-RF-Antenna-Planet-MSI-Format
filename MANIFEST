@@ -7,3 +7,4 @@ CONTRIBUTING.md
 t/001_load.t
 t/002_new.t
 lib/RF/Antenna/Planet/MSI/Format.pm
+scripts/perl-RF-Antenna-Planet-MSI-Format-printer.pl
