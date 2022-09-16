@@ -45,7 +45,7 @@ Creates a new object and loads data from other sources
 
 ## read
 
-Reads an antenna pattern file and parses the data into the object data structure.
+Reads an antenna pattern file and parses the data into the object data structure. Returns the object so that the called can be chained.
 
     $antenna->read($filename);
 
@@ -55,12 +55,13 @@ Writes the objects data to an antenna pattern file and returns a Path::Class fil
 
     my $file     = $antenna->write($filename); #isa Path::Class::file
     my $tempfile = $antenna->write;            #isa Path::Class::file in temp directory
+    $antenna->write(\my $blob);
 
 # DATA STRUCTURE METHODS
 
 ## header
 
-Set header values and returns the header hash reference which is tied [Tie::IxHash](https://metacpan.org/pod/Tie::IxHash) to preserve header sort order.
+Set header values and returns the header data structure which is a hash reference tied to [Tie::IxHash](https://metacpan.org/pod/Tie::IxHash) to preserve header sort order.
 
 Set a key/value pair
 
@@ -73,6 +74,10 @@ Set multiple keys/values with one call
 Read arbitrary values
 
     my $value = $antenna->header->{uc($key)};
+
+Returns ordered list of header keys
+
+    my @keys = keys %{$antenna->header};
 
 ## horizontal, vertical
 
