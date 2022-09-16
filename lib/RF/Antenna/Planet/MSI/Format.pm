@@ -138,6 +138,7 @@ Writes the objects data to an antenna pattern file and returns a Path::Class fil
 
   my $file     = $antenna->write($filename); #isa Path::Class::file
   my $tempfile = $antenna->write;            #isa Path::Class::file in temp directory
+  $antenna->write(\my $blob);
 
 =cut
 
@@ -146,7 +147,10 @@ sub write {
   my $filename = shift;
   my $fh;
   my $file;
-  if (length $filename) {
+  if (ref($filename) eq 'SCALAR') {
+    $file = undef;
+    open $fh, '>', $filename;
+  } elsif (length $filename) {
     $file            = Path::Class::file($filename);
     $fh              = $file->open('w') or die(qq{Error: Cannot open "$filename" for writing});
   } else {
@@ -185,7 +189,7 @@ sub write {
   foreach my $method (qw{horizontal vertical}) {
     my $array = $self->$method;
     next unless $array;
-    my $key   = uc($_);
+    my $key   = uc($method);
     _print_fh_key_array($fh, $key, $array);
   }
 
