@@ -1,5 +1,8 @@
 Revision history for Perl extension RF::Antenna::Planet::MSI::Format.
 
+0.03 2022-10-11
+  - Added method read_fromZipMember with tests
+
 0.02 2022-09-30
   - Updated gain_dbd method to parse different formats of text based storage of gain header
   - Updated t/005_gain_freq.t to test all the formats that I know about

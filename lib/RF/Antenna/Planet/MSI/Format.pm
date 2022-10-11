@@ -133,6 +133,33 @@ sub read {
   return $self;
 }
 
+=head2 read_fromZipMember
+
+Reads an antenna pattern file from a zipped archive and parses the data into the object data structure.
+
+  $antenna->read_fromZipMember($zip_filename, $member_filename);
+
+=cut
+
+sub read_fromZipMember {
+  my $self            = shift;
+  my $zip_filename    = shift or die("Error: zip filename required");
+  my $member_filename = shift or die("Error: zip member name requried");
+
+  require Archive::Zip;
+  require Archive::Zip::MemberRead;
+
+  my $zip_archive = Archive::Zip->new;
+  unless ( $zip_archive->read("$zip_filename") == Archive::Zip::AZ_OK() ) {die "Error: $zip_filename read error"};
+
+  my $blob  = '';
+  my $fh    = Archive::Zip::MemberRead->new($zip_archive, "$member_filename");
+  while (defined(my $line = $fh->getline)) {$blob .= "$line$/"}; #getline chomps but preserve_line_ending does not work for foreign line endings
+  $fh->close;
+
+  return $self->read(\$blob);
+}
+
 =head2 write
 
 Writes the object's data to an antenna pattern file and returns a Path::Class file object of the written file.
