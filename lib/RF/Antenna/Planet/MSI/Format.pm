@@ -473,6 +473,8 @@ Format Definition: L<http://radiomobile.pe1mew.nl/?The_program:Definitions:MSI>
 
 Antenna Pattern File Library L<https://www.wireless-planning.com/msi-antenna-pattern-file-library>
 
+Format Definition from RCC: L<https://web.archive.org/web/20080821041142/http://www.rcc.com/msiplanetformat.html>
+
 =head1 AUTHOR
 
 Michael R. Davis, MRDVT
