@@ -1,5 +1,10 @@
 Revision history for Perl extension RF::Antenna::Planet::MSI::Format.
 
+0.04 2022-10-12
+  - Header keys are no longer forced to be upper case as vendor extensions are lower/mixed case - NOT 100% backward compatable
+  - NAME is assumed to be first line even when NAME key token is surpressed - NOT 100% backward compatable
+  - NAME is always written as first line with NAME key token
+
 0.03 2022-10-11
   - Added method read_fromZipMember with tests
 
