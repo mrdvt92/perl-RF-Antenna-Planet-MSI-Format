@@ -294,7 +294,7 @@ sub header {
 
 Horizontal or vertical data structure for the angle and relative loss values from the specified gain in the header.
 
-Each methods sets and returns an array reference of array references [[$angle1, $value1], $angle2, $value2], ...]
+Each methods sets and returns an array reference of array references [[$angle1, $value1], [$angle2, $value2], ...]
 
 Please note that the format uses equal spacing of data points by angle.  Most files that I have seen use 360 one degree measurements from 0 (i.e. boresight) to 359 degrees with values in dB down from the maximum lobe even if that lobe is not the boresight.
 
