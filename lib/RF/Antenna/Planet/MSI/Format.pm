@@ -5,7 +5,7 @@ use Scalar::Util qw();
 use Tie::IxHash qw{};
 use Path::Class qw{};
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 =head1 NAME
 
@@ -367,31 +367,87 @@ sub frequency {
   return $self->header->{'FREQUENCY'};
 }
 
-=head2 frequency_mhz, frequency_ghz
+=head2 frequency_mhz, frequency_ghz, frequency_mhz_lower, frequency_mhz_upper, frequency_ghz_lower, frequency_ghz_upper
 
 Attempts to read and parse the string header value and return the frequency as a number in the requested unit of measure.
 
 =cut
 
+#supported formats
+#123.1 => assumed MHz
+#123.1 MHz
+#123.1 GHz
+#123.1 kHz
+#123.1-124.1 => assumed MHz
+#123.1-124.1 MHz
+#123.1-124.1 GHz
+#123.1-124.1 kHz
+#123x124
+#123x124 MHz
+#123x124 GHz
+#123x124 kHz
+
 sub frequency_mhz {
   my $self   = shift;
   my $string = $self->frequency;
-  if (Scalar::Util::looks_like_number($string)) {
-    return $string + 0; #convert from string to number
-  } elsif ($string =~ m/([0-9\.]+)\s*MHz/i) {
-    return $1 + 0; #pulls the number out before the string for you ... try it perl -e 'print "2314.23 MHz" + 0'
-  } elsif ($string =~ m/([0-9\.]+)\s*GHz/i) {
-    return ($1 + 0) * 1000;
-  } elsif ($string =~ m/([0-9\.]+)\s*kHz/i) {
-    return eval{($1 + 0) / 1000}; #eval will return undef on divide by zero
-  } else {
-    return undef;
+  my $scale  = 1; #MHz
+  my $number = undef; #return undef if cannot parse
+  my $upper  = undef;
+  my $lower  = undef;
+  if ($string =~ m/GHz/i) {
+    $scale = 1e3;
+  } elsif ($string =~ m/kHz/i) {
+    $scale = 1e-3;
+  } elsif ($string =~ m/MHz/i) {
+    $scale = 1;
   }
+
+  if (Scalar::Util::looks_like_number($string)) {
+    $number = $scale * $string; #convert from string to number
+    $lower  = $number;
+    $upper  = $number;
+  } elsif ($string =~ m/([0-9]*\.?[0-9]+)[^0-9.]+([0-9]*\.?[0-9]+)/) { #two decimals or floats with any separator
+    $lower  = $scale * $1;
+    $upper  = $scale * $2;
+    $number = ($lower + $upper) / 2;
+  } elsif ($string =~ m/([0-9\.]+)/) { #single float
+    $number = $scale * $1;
+    $lower  = $number;
+    $upper  = $number;
+  }
+  $self->{'frequency_mhz'}       = $number;
+  $self->{'frequency_mhz_lower'} = $lower;
+  $self->{'frequency_mhz_upper'} = $upper;
+  return $number;
 }
 
 sub frequency_ghz {
   my $self = shift;
   my $mhz  = $self->frequency_mhz;
+  return $mhz ? $mhz/1000 : undef;
+}
+
+sub frequency_mhz_lower {
+  my $self = shift;
+  $self->frequency_mhz; #initialize
+  return $self->{'frequency_mhz_lower'};
+}
+
+sub frequency_mhz_upper {
+  my $self = shift;
+  $self->frequency_mhz; #initialize
+  return $self->{'frequency_mhz_upper'};
+}
+
+sub frequency_ghz_lower {
+  my $self = shift;
+  my $mhz  = $self->frequency_mhz_lower;
+  return $mhz ? $mhz/1000 : undef;
+}
+
+sub frequency_ghz_upper {
+  my $self = shift;
+  my $mhz  = $self->frequency_mhz_upper;
   return $mhz ? $mhz/1000 : undef;
 }
 
