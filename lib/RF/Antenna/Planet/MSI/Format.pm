@@ -5,7 +5,7 @@ use Scalar::Util qw();
 use Tie::IxHash qw{};
 use Path::Class qw{};
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 =head1 NAME
 
@@ -117,26 +117,27 @@ sub read {
     my $line = shift @lines;
     $line =~ s/\A\s*//; #ltrim
     $line =~ s/\s*\Z//; #rtrim
-    next unless $line;
-    $loop++;
-    my ($key, $value) = split /\s+/, $line, 2; #split with limit returns undef value if empty string
-    $value = '' unless defined $value;
-
-    if ($loop == 1 and $key ne 'NAME') { #First line of file is NAME even if NAME token is surpessed
-      $self->header(NAME => $line);
-    } else {
-      #printf "Key: $key, Value: $value\n";
-      if ($key =~ m/\AHORIZONTAL\Z/i) {
-        my @data = map {s/\s+\Z//; s/\A\s+//; [split /\s+/, $_, 2]} splice @lines, 0, $value;
-        die(sprintf('Error: HORIZONTAL records with %s records returned %s records', $value, scalar(@data))) unless scalar(@data) == $value;
-        $self->horizontal(\@data);
-      } elsif ($key =~ m/\AVERTICAL\Z/i) {
-        my @data = map {s/\s+\Z//; s/\A\s+//; [split /\s+/, $_, 2]} splice @lines, 0, $value;
-        die unless @data == $value;
-        die(sprintf('Error: VERTICAL records with %s records returned %s records', $value, scalar(@data))) unless scalar(@data) == $value;
-        $self->vertical(\@data);
+    if ($line) {
+      $loop++;
+      my ($key, $value) = split /\s+/, $line, 2; #split with limit returns undef value if empty string
+      $value = '' unless defined $value;
+  
+      if ($loop == 1 and $key ne 'NAME') { #First line of file is NAME even if NAME token is surpessed
+        $self->header(NAME => $line);
       } else {
-        $self->header($key => $value);
+        #printf "Key: $key, Value: $value\n";
+        if ($key =~ m/\AHORIZONTAL\Z/i) {
+          my @data = map {s/\s+\Z//; s/\A\s+//; [split /\s+/, $_, 2]} splice @lines, 0, $value;
+          die(sprintf('Error: HORIZONTAL records with %s records returned %s records', $value, scalar(@data))) unless scalar(@data) == $value;
+          $self->horizontal(\@data);
+        } elsif ($key =~ m/\AVERTICAL\Z/i) {
+          my @data = map {s/\s+\Z//; s/\A\s+//; [split /\s+/, $_, 2]} splice @lines, 0, $value;
+          die unless @data == $value;
+          die(sprintf('Error: VERTICAL records with %s records returned %s records', $value, scalar(@data))) unless scalar(@data) == $value;
+          $self->vertical(\@data);
+        } else {
+          $self->header($key => $value);
+        }
       }
     }
     last unless @lines;

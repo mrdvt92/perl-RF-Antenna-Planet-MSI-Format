@@ -1,5 +1,8 @@
 Revision history for Perl extension RF::Antenna::Planet::MSI::Format.
 
+0.07 2022-10-19
+  - Fixed read method to handle trailing empty lines
+
 0.06 2022-10-19
   - Updated the parse architecture of gain_dbd to match work done in frequency_mhz
 
