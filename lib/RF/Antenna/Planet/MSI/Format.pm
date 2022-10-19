@@ -5,7 +5,7 @@ use Scalar::Util qw();
 use Tie::IxHash qw{};
 use Path::Class qw{};
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 =head1 NAME
 
@@ -390,34 +390,40 @@ Attempts to read and parse the string header value and return the frequency as a
 sub frequency_mhz {
   my $self   = shift;
   my $string = $self->frequency;
-  my $scale  = 1; #MHz
   my $number = undef; #return undef if cannot parse
-  my $upper  = undef;
-  my $lower  = undef;
-  if ($string =~ m/GHz/i) {
-    $scale = 1e3;
-  } elsif ($string =~ m/kHz/i) {
-    $scale = 1e-3;
-  } elsif ($string =~ m/MHz/i) {
-    $scale = 1;
-  }
 
-  if (Scalar::Util::looks_like_number($string)) {
-    $number = $scale * $string; #convert from string to number
-    $lower  = $number;
-    $upper  = $number;
-  } elsif ($string =~ m/([0-9]*\.?[0-9]+)[^0-9.]+([0-9]*\.?[0-9]+)/) { #two decimals or floats with any separator
-    $lower  = $scale * $1;
-    $upper  = $scale * $2;
-    $number = ($lower + $upper) / 2;
-  } elsif ($string =~ m/([0-9\.]+)/) { #single float
-    $number = $scale * $1;
-    $lower  = $number;
-    $upper  = $number;
+  if (defined($string)) {
+
+    my $upper  = undef;
+    my $lower  = undef;
+
+    my $scale  = 1; #Default: MHz
+    if ($string =~ m/GHz/i) {
+      $scale = 1e3;
+    } elsif ($string =~ m/kHz/i) {
+      $scale = 1e-3;
+    } elsif ($string =~ m/MHz/i) {
+      $scale = 1;
+    }
+
+    if (Scalar::Util::looks_like_number($string)) { #entire string looks like a number
+      $number = $scale * $string;
+      $lower  = $number;
+      $upper  = $number;
+    } elsif ($string =~  m/([0-9]*\.?[0-9]+)[^0-9.]+([0-9]*\.?[0-9]+)/) { #two non-negative numbers with any separator
+      $lower  = $scale * $1;
+      $upper  = $scale * $2;
+      $number = ($lower + $upper) / 2;
+    } elsif ($string =~ m/([0-9]*\.?[0-9]+)/) { #one non-negative number
+      $number = $scale * $1;
+      $lower  = $number;
+      $upper  = $number;
+    }
+    $self->{'frequency_mhz'}       = $number;
+    $self->{'frequency_mhz_lower'} = $lower;
+    $self->{'frequency_mhz_upper'} = $upper;
+
   }
-  $self->{'frequency_mhz'}       = $number;
-  $self->{'frequency_mhz_lower'} = $lower;
-  $self->{'frequency_mhz_upper'} = $upper;
   return $number;
 }
 
@@ -472,19 +478,24 @@ Attempts to read and parse the string header value and return the gain as a numb
 sub gain_dbd {
   my $self   = shift;
   my $string = $self->gain;
-  if (Scalar::Util::looks_like_number($string)) {
-    return $string + 0; #dBd is the default UOM
-  } elsif ($string =~ m/dBd/i) {
-    if ($string =~ m/([0-9]*\.?[0-9]+)/) { #0.123 | .123 | 123
-      return $1 + 0;
+  my $number = undef;
+  if (defined($string)) {
+
+    my $scale  = 0; #default dBd
+    if ($string =~ m/dBi/i) {
+      $scale = -2.14;
+    } elsif ($string =~ m/dBd/i) {
+      $scale = 0;
     }
-  } elsif ($string =~ m/dBi/i) {
-    if ($string =~ m/([0-9]*\.?[0-9]+)/) {
-      return ($1 + 0) - 2.14;
+
+    if (Scalar::Util::looks_like_number($string)) { #entire string looks like a number
+      $number = $string + $scale; #default: dBd
+    } elsif ($string =~ m/([+-]?[0-9]*\.?[0-9]+)/) { #one real number
+      $number = $1 + $scale;
     }
-  } else {
-    return undef;
+
   }
+  return $number;
 }
 
 sub gain_dbi {

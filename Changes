@@ -1,5 +1,8 @@
 Revision history for Perl extension RF::Antenna::Planet::MSI::Format.
 
+0.06 2022-10-19
+  - Updated the parse architecture of gain_dbd to match work done in frequency_mhz
+
 0.05 2022-10-18
   - Updated method frequency_mhz to support frequency ranges found in many MSI files
   - Added methods frequency_mhz_lower, frequency_mhz_upper, frequency_ghz_lower, frequency_ghz_upper
