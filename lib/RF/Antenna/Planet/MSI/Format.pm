@@ -5,7 +5,7 @@ use Scalar::Util qw();
 use Tie::IxHash qw{};
 use Path::Class qw{};
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 =head1 NAME
 
@@ -108,11 +108,12 @@ Assumptions:
 =cut
 
 sub read {
-  my $self  = shift;
-  my $file  = shift;
-  my $blob  = ref($file) eq 'SCALAR' ? ${$file} : Path::Class::file($file)->slurp;
-  my @lines = split(/[\n\r]+/, $blob);
-  my $loop  = 0;
+  my $self        = shift;
+  my $file        = shift;
+  my $blob        = ref($file) eq 'SCALAR' ? ${$file} : Path::Class::file($file)->slurp;
+  $self->{'blob'} = $blob; #store for blob method
+  my @lines       = split(/[\n\r]+/, $blob);
+  my $loop        = 0;
   while (1) {
     my $line = shift @lines;
     $line =~ s/\A\s*//; #ltrim
@@ -126,15 +127,10 @@ sub read {
         $self->header(NAME => $line);
       } else {
         #printf "Key: $key, Value: $value\n";
-        if ($key =~ m/\AHORIZONTAL\Z/i) {
-          my @data = map {s/\s+\Z//; s/\A\s+//; [split /\s+/, $_, 2]} splice @lines, 0, $value;
-          die(sprintf('Error: HORIZONTAL records with %s records returned %s records', $value, scalar(@data))) unless scalar(@data) == $value;
-          $self->horizontal(\@data);
-        } elsif ($key =~ m/\AVERTICAL\Z/i) {
-          my @data = map {s/\s+\Z//; s/\A\s+//; [split /\s+/, $_, 2]} splice @lines, 0, $value;
-          die unless @data == $value;
-          die(sprintf('Error: VERTICAL records with %s records returned %s records', $value, scalar(@data))) unless scalar(@data) == $value;
-          $self->vertical(\@data);
+        if (uc($key) eq 'HORIZONTAL') {
+          $self->_parse_polarization(\@lines, horizontal => $value);
+        } elsif (uc($key) eq 'VERTICAL') {
+          $self->_parse_polarization(\@lines, vertical => $value);
         } else {
           $self->header($key => $value);
         }
@@ -143,6 +139,21 @@ sub read {
     last unless @lines;
   }
   return $self;
+
+  sub _parse_polarization {
+    my $self   = shift;
+    my $lines  = shift;
+    my $method = shift;
+    my $value  = shift; #string
+    if ($value =~ m/([0-9]+)/) { #support bad data like missing 360 or "360 0"
+      $value = $1 + 0; #convert string to number
+    } else {
+      $value = 360;    #default
+    }
+    my @data = map {s/\s+\Z//; s/\A\s+//; [split /\s+/, $_, 2]} splice @$lines, 0, $value;
+    die(sprintf('Error: %s records with %s records returned %s records', uc($method), $value, scalar(@data))) unless scalar(@data) == $value;
+    $self->$method(\@data);
+  }
 }
 
 =head2 read_fromZipMember
@@ -170,6 +181,17 @@ sub read_fromZipMember {
   $fh->close;
 
   return $self->read(\$blob);
+}
+
+=head2 blob
+
+Returns the data blob that was read by the read($file), read($scalar_ref), or read_fromZipMember($,$) methods.
+
+=cut
+
+sub blob {
+  my $self = shift;
+  return $self->{'blob'};
 }
 
 =head2 write
@@ -356,9 +378,11 @@ sub make {
 Sets and returns the frequency string as displayed in header structure
 
   my $frequency = $antenna->frequency;
-  $antenna->frequency("2450");     #correct format in MHz
-  $antenna->frequency("2450 MHz"); #acceptable format
-  $antenna->frequency("2.45 GHz"); #common format but technically not to spec
+  $antenna->frequency("2450");          #correct format in MHz
+  $antenna->frequency("2450 MHz");      #acceptable format
+  $antenna->frequency("2.45 GHz");      #common format but technically not to spec
+  $antenna->frequency("2450-2550");     #common range format but technically not to spec
+  $antenna->frequency("2.45-2.55 GHz"); #common range format but technically not to spec
 
 =cut
 
@@ -460,7 +484,13 @@ sub frequency_ghz_upper {
 
 =head2 gain
 
-Antenna gain string as displayed in file (dBd is the default unit of measure)
+Sets and returns the antenna gain string as displayed in file (dBd is the default unit of measure)
+
+  my $gain = $antenna->gain;
+  $antenna->gain("9.1");          #correct format in dBd
+  $antenna->gain("9.1 dBd");      #correct format in dBd
+  $antenna->gain("9.1 dBi");      #correct format in dBi
+  $antenna->gain("(dBi) 9.1");    #supported format
 
 =cut
 
