@@ -279,7 +279,7 @@ sub write {
 
 Sets and returns the file extension to use for write method when called without any parameters.
  
-  my $suffix = $antenna->file_extension('.prn');
+  my $suffix = $antenna->file_extension('.ant');
 
 Default: .msi
 
