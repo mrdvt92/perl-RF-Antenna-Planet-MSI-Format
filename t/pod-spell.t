@@ -11,3 +11,7 @@ dBd
 msi
 boresight
 RCC
+pla
+pln
+ptn
+txt
