@@ -1,5 +1,10 @@
 Revision history for Perl extension RF::Antenna::Planet::MSI::Format.
 
+0.12 2022-12-15
+  - Added methods tilt and electrical_tilt_degrees
+  - Added tests t/012_tilt.t
+  - Updated read_fromZipMember to use Archive::Zip->member->content instead of Archive::Zip::MemberRead->getline
+
 0.11 2022-12-14
   - Updated documentation for horizontal and vertical methods
   - Added methods file_extension and media_type
