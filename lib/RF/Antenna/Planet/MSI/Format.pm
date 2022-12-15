@@ -6,7 +6,7 @@ use Tie::IxHash qw{};
 use Path::Class qw{};
 use RF::Functions 0.04, qw{dbd_dbi dbi_dbd};
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 our $PACKAGE = __PACKAGE__;
 
 =head1 NAME
@@ -619,16 +619,16 @@ sub electrical_tilt_degrees {
     if ($tilt =~ m/\A(NONE|MECHANICAL)/i                    ) { #Spec:
       $degrees = 0;
     } elsif (Scalar::Util::looks_like_number($tilt)         ) { #number (assume electrical tilt)
-        $degrees = $tilt + 0;
-    } elsif ($tilt =~ m/\A([0-9]{1,2})[-\s]deg.*ELECTRICAL/i) { #8-Deg Electrical
+        $degrees = abs($tilt + 0);
+    } elsif ($tilt =~ m/\A-?([0-9]{1,2})[-\s]deg.*ELECTRICAL/i) { #8-Deg Electrical
         $degrees = $1 + 0;
-    } elsif ($tilt =~ m/\A([0-9]{1,2})[-\s]deg.*E-TILT/i    ) { #8-Deg E-Tilt
+    } elsif ($tilt =~ m/\A-?([0-9]{1,2})[-\s]deg.*E-TILT/i    ) { #8-Deg E-Tilt
         $degrees = $1 + 0;
     } elsif ($tilt =~ m/\A([0-9]{1,2})T\Z/i                 ) { #11T
         $degrees = $1 + 0;
     } elsif ($tilt =~ m/\AT([0-9]{1,2})\Z/i                 ) { #T11
         $degrees = $1 + 0;
-    } elsif ($tilt =~ m/\AELECTRICAL ([0-9]{1,2})\b/        ) { #ELECTRICAL 11...
+    } elsif ($tilt =~ m/\AELECTRICAL -?([0-9]{1,2})\b/        ) { #ELECTRICAL 11...
         $degrees = $1 + 0;
     } elsif ($tilt =~ m/\AELECTRICAL\Z/i                    ) { #Spec: ELECTRICAL
       my $comment         =  $self->comment         // '';
@@ -636,12 +636,12 @@ sub electrical_tilt_degrees {
       $electrical_tilt    =~ s/\A\s+//; #ltrim
       $electrical_tilt    =~ s/\s+\Z//; #rtrim
       if (Scalar::Util::looks_like_number($electrical_tilt)            ) { #Spec: ELECTRICAL_TILT 1.25
-        $degrees = $electrical_tilt + 0;
-      } elsif ($electrical_tilt =~ m/\A([0-9]{1,2})\b/i                ) { #ELECTRICAL_TILT 11 degrees
+        $degrees = abs($electrical_tilt + 0);
+      } elsif ($electrical_tilt =~ m/\A-?([0-9]{1,2})\b/i                ) { #ELECTRICAL_TILT 11 degrees
         $degrees = $1 + 0;
-      } elsif ($comment         =~ m/ELECTRICAL_TILT\s+([0-9]{1,2})\b/i) { #COMMENT ELECTRICAL_TILT 8 | COMMENT ELECTRICAL_TILT 8 degrees
+      } elsif ($comment         =~ m/ELECTRICAL_TILT\s+-?([0-9]{1,2})\b/i) { #COMMENT ELECTRICAL_TILT 8 | COMMENT ELECTRICAL_TILT 8 degrees
         $degrees = $1 + 0;
-      } elsif ($comment         =~ m/E-TILT\s+([0-9]{1,2})\b/i         ) { #COMMENT E-TILT 8
+      } elsif ($comment         =~ m/E-?TILT\s+-?([0-9]{1,2})\b/i        ) { #COMMENT E-TILT 8 | COMMENT ETilt -2 deg
         $degrees = $1 + 0;
       }
     }

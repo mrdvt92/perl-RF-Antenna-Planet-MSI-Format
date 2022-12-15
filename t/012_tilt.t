@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 57;
+use Test::More tests => 59;
 BEGIN { use_ok('RF::Antenna::Planet::MSI::Format') };
 
 {
@@ -91,4 +91,7 @@ BEGIN { use_ok('RF::Antenna::Planet::MSI::Format') };
 
   is($antenna->comment('E-TILT 8'), 'E-TILT 8', 'COMMENT E-TILT 8');
   is($antenna->electrical_tilt_degrees, 8, 'COMMENT E-TILT 8');
+
+  is($antenna->comment('ETilt -2 deg'), 'ETilt -2 deg', 'COMMENT ETilt -2 deg');
+  is($antenna->electrical_tilt_degrees, 2, 'COMMENT ETilt -2 deg');
 }
