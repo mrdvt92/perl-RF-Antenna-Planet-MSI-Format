@@ -6,7 +6,7 @@ use Tie::IxHash qw{};
 use Path::Class qw{};
 use RF::Functions 0.04, qw{dbd_dbi dbi_dbd};
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 our $PACKAGE = __PACKAGE__;
 
 =head1 NAME
@@ -631,8 +631,8 @@ sub electrical_tilt_degrees {
     } elsif ($tilt =~ m/\AELECTRICAL -?([0-9]{1,2})\b/        ) { #ELECTRICAL 11...
         $degrees = $1 + 0;
     } elsif ($tilt =~ m/\AELECTRICAL\Z/i                    ) { #Spec: ELECTRICAL
-      my $comment         =  $self->comment         // '';
-      my $electrical_tilt =  $self->electrical_tilt // '';
+      my $comment         =  $self->comment;         $comment         = '' unless defined($comment);
+      my $electrical_tilt =  $self->electrical_tilt; $electrical_tilt = '' unless defined($electrical_tilt);
       $electrical_tilt    =~ s/\A\s+//; #ltrim
       $electrical_tilt    =~ s/\s+\Z//; #rtrim
       if (Scalar::Util::looks_like_number($electrical_tilt)            ) { #Spec: ELECTRICAL_TILT 1.25

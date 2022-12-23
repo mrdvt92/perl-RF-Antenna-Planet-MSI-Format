@@ -1,5 +1,8 @@
 Revision history for Perl extension RF::Antenna::Planet::MSI::Format.
 
+0.14 2022-12-22
+  - Updated electrical_tilt_degrees to support perl 5.8
+
 0.13 2022-12-15
   - Updated electrical_tilt_degrees method to fold negative tilts into positive downtilts.
 
